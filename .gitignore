@@ -2,9 +2,16 @@
 node_modules/
 */node_modules/
 
+# Package lock files (personal project - not needed)
+package-lock.json
+*/package-lock.json
+
 # Environment files
 .env
 .env.local
+
+# Database files (will grow large over time)
+backend/database/*.db
 
 # Logs
 *.log
