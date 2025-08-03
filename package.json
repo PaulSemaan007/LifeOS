@@ -1,0 +1,18 @@
+{
+  "name": "lifeos",
+  "version": "1.0.0",
+  "description": "Personal operating system for managing education, finances, fitness, and career",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
+    "build": "cd frontend && npm run build"
+  },
+  "keywords": ["life-management", "personal-dashboard", "productivity"],
+  "author": "PaulSemaan007",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
