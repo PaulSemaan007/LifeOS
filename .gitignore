@@ -8,6 +8,17 @@ node_modules/
 
 # Logs
 *.log
+npm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Build files
+/frontend/build
+/frontend/dist
 
 # OS files
 .DS_Store
@@ -16,7 +27,3 @@ Thumbs.db
 # IDE files
 .vscode/
 .idea/
-
-# Build files
-/frontend/build
-/frontend/dist
