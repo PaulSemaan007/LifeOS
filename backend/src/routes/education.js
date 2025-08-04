@@ -3,6 +3,66 @@ const router = express.Router();
 const db = require('../database');
 
 // =============================================
+// INSTITUTIONS ROUTES
+// =============================================
+
+// GET all institutions
+router.get('/institutions', (req, res) => {
+  db.all('SELECT * FROM institutions ORDER BY name', (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ data: rows });
+  });
+});
+
+// POST create new institution
+router.post('/institutions', (req, res) => {
+  const { name, type, website, notes } = req.body;
+  
+  db.run(
+    `INSERT INTO institutions (name, type, website, notes) VALUES (?, ?, ?, ?)`,
+    [name, type || null, website || null, notes || null],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ id: this.lastID, message: 'Institution created successfully' });
+    }
+  );
+});
+
+// PUT update institution
+router.put('/institutions/:id', (req, res) => {
+  const { name, type, website, notes } = req.body;
+  
+  db.run(
+    `UPDATE institutions SET name=?, type=?, website=?, notes=? WHERE id=?`,
+    [name, type, website, notes, req.params.id],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'Institution updated successfully' });
+    }
+  );
+});
+
+// DELETE institution
+router.delete('/institutions/:id', (req, res) => {
+  db.run('DELETE FROM institutions WHERE id=?', req.params.id, function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ message: 'Institution deleted successfully' });
+  });
+});
+
+// =============================================
 // EDUCATIONAL PROGRAMS ROUTES
 // =============================================
 
@@ -10,12 +70,14 @@ const db = require('../database');
 router.get('/programs', (req, res) => {
   const query = `
     SELECT p.*, 
+           COALESCE(i.name, p.institution) as institution_name,
            COUNT(DISTINCT cc.id) as completed_courses,
            COALESCE(SUM(CASE WHEN cc.status = 'completed' THEN c.credits ELSE 0 END), 0) as credits_earned
     FROM educational_programs p
+    LEFT JOIN institutions i ON p.institution_id = i.id
     LEFT JOIN course_completions cc ON p.id = cc.program_id AND cc.status = 'completed'
     LEFT JOIN courses c ON cc.course_id = c.id
-    GROUP BY p.id
+    GROUP BY p.id, p.name, p.type, p.institution_id, p.institution, p.status, p.total_credits, p.credits_completed, p.start_date, p.target_completion_date, p.completion_date, p.gpa, p.notes, p.created_at, i.name
     ORDER BY p.created_at DESC
   `;
   
@@ -82,12 +144,12 @@ router.get('/programs/:id', (req, res) => {
 
 // POST create new educational program
 router.post('/programs', (req, res) => {
-  const { name, type, institution, status, total_credits, start_date, target_completion_date, notes } = req.body;
+  const { name, type, institution_id, institution, status, total_credits, start_date, target_completion_date, notes } = req.body;
   
   db.run(
-    `INSERT INTO educational_programs (name, type, institution, status, total_credits, start_date, target_completion_date, notes) 
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [name, type, institution || null, status || 'planned', total_credits || null, start_date || null, target_completion_date || null, notes || null],
+    `INSERT INTO educational_programs (name, type, institution_id, institution, status, total_credits, start_date, target_completion_date, notes) 
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [name, type, institution_id || null, institution || null, status || 'planned', total_credits || null, start_date || null, target_completion_date || null, notes || null],
     function(err) {
       if (err) {
         res.status(500).json({ error: err.message });
@@ -100,13 +162,13 @@ router.post('/programs', (req, res) => {
 
 // PUT update educational program
 router.put('/programs/:id', (req, res) => {
-  const { name, type, institution, status, total_credits, credits_completed, start_date, target_completion_date, completion_date, gpa, notes } = req.body;
+  const { name, type, institution_id, institution, status, total_credits, credits_completed, start_date, target_completion_date, completion_date, gpa, notes } = req.body;
   
   db.run(
     `UPDATE educational_programs 
-     SET name=?, type=?, institution=?, status=?, total_credits=?, credits_completed=?, start_date=?, target_completion_date=?, completion_date=?, gpa=?, notes=?
+     SET name=?, type=?, institution_id=?, institution=?, status=?, total_credits=?, credits_completed=?, start_date=?, target_completion_date=?, completion_date=?, gpa=?, notes=?
      WHERE id=?`,
-    [name, type, institution, status, total_credits, credits_completed, start_date, target_completion_date, completion_date, gpa, notes, req.params.id],
+    [name, type, institution_id, institution, status, total_credits, credits_completed, start_date, target_completion_date, completion_date, gpa, notes, req.params.id],
     function(err) {
       if (err) {
         res.status(500).json({ error: err.message });
@@ -125,12 +187,14 @@ router.put('/programs/:id', (req, res) => {
 router.get('/courses', (req, res) => {
   const query = `
     SELECT c.*,
+           COALESCE(i.name, c.institution) as institution_name,
            GROUP_CONCAT(pc.code) as prerequisites
     FROM courses c
+    LEFT JOIN institutions i ON c.institution_id = i.id
     LEFT JOIN course_prerequisites cp ON c.id = cp.course_id
     LEFT JOIN courses pc ON cp.prerequisite_course_id = pc.id
-    GROUP BY c.id
-    ORDER BY c.institution, c.code
+    GROUP BY c.id, c.code, c.name, c.credits, c.description, c.institution_id, c.institution, c.created_at, i.name
+    ORDER BY COALESCE(i.name, c.institution), c.code
   `;
   
   db.all(query, (err, rows) => {
@@ -144,12 +208,12 @@ router.get('/courses', (req, res) => {
 
 // POST create new course
 router.post('/courses', (req, res) => {
-  const { code, name, credits, description, institution } = req.body;
+  const { code, name, credits, description, institution_id, institution } = req.body;
   
   db.run(
-    `INSERT INTO courses (code, name, credits, description, institution) 
-     VALUES (?, ?, ?, ?, ?)`,
-    [code, name, credits || 3, description || null, institution || null],
+    `INSERT INTO courses (code, name, credits, description, institution_id, institution) 
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [code, name, credits || 3, description || null, institution_id || null, institution || null],
     function(err) {
       if (err) {
         res.status(500).json({ error: err.message });

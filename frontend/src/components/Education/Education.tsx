@@ -14,12 +14,14 @@ import {
   Users,
   BookMarked,
   Edit,
-  Settings
+  Settings,
+  Building
 } from 'lucide-react';
 
 // Import the forms and enhanced management
 import { AddProgramForm, AddCompletionForm, QuickAddCourseForm } from './EducationForms';
 import ProgramManagementModal from './ProgramManagementModal';
+import InstitutionManagementModal from './InstitutionManagementModal';
 
 // TypeScript interfaces
 interface Program {
@@ -91,8 +93,25 @@ interface Stats {
   }>;
 }
 
+interface Institution {
+  id: number;
+  name: string;
+  type?: string;
+  website?: string;
+  notes?: string;
+  created_at: string;
+}
+
 // Enhanced API service for the new education system
 const educationAPI = {
+  // Institutions
+  getInstitutions: () => fetch('http://localhost:5000/api/education/institutions').then(r => r.json()),
+  createInstitution: (data: any) => fetch('http://localhost:5000/api/education/institutions', { 
+    method: 'POST', 
+    headers: { 'Content-Type': 'application/json' }, 
+    body: JSON.stringify(data) 
+  }).then(r => r.json()),
+  
   // Programs
   getPrograms: () => fetch('http://localhost:5000/api/education/programs').then(r => r.json()),
   getProgram: (id: number) => fetch(`http://localhost:5000/api/education/programs/${id}`).then(r => r.json()),
@@ -150,6 +169,7 @@ const Education = () => {
   const [programs, setPrograms] = useState<Program[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [completions, setCompletions] = useState<Completion[]>([]);
+  const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -159,6 +179,7 @@ const Education = () => {
   const [showAddCompletion, setShowAddCompletion] = useState(false);
   const [showAddCourse, setShowAddCourse] = useState(false);
   const [showManageProgram, setShowManageProgram] = useState(false);
+  const [showManageInstitutions, setShowManageInstitutions] = useState(false);
   const [selectedProgramForManagement, setSelectedProgramForManagement] = useState<Program | null>(null);
 
   useEffect(() => {
@@ -167,16 +188,18 @@ const Education = () => {
 
   const fetchData = async () => {
     try {
-      const [programsRes, coursesRes, completionsRes, statsRes] = await Promise.all([
+      const [programsRes, coursesRes, completionsRes, institutionsRes, statsRes] = await Promise.all([
         educationAPI.getPrograms(),
         educationAPI.getCourses(),
         educationAPI.getCompletions(),
+        educationAPI.getInstitutions(),
         educationAPI.getStats()
       ]);
       
       setPrograms(programsRes.data || []);
       setCourses(coursesRes.data || []);
       setCompletions(completionsRes.data || []);
+      setInstitutions(institutionsRes.data || []);
       setStats(statsRes);
     } catch (error) {
       console.error('Error fetching education data:', error);
@@ -330,7 +353,7 @@ const Education = () => {
       </div>
 
       {/* Action Buttons */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
         <button 
           onClick={() => setShowAddProgram(true)}
           style={{
@@ -389,6 +412,26 @@ const Education = () => {
         >
           <BookOpen size={16} />
           Add Course
+        </button>
+
+        <button 
+          onClick={() => setShowManageInstitutions(true)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.75rem 1rem',
+            backgroundColor: '#7c3aed',
+            color: 'white',
+            border: 'none',
+            borderRadius: '0.375rem',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            cursor: 'pointer'
+          }}
+        >
+          <Building size={16} />
+          Manage Institutions
         </button>
       </div>
 
@@ -954,6 +997,7 @@ const Education = () => {
         isOpen={showAddProgram}
         onClose={() => setShowAddProgram(false)}
         onSubmit={handleAddProgram}
+        institutions={institutions}
       />
       
       <AddCompletionForm 
@@ -968,6 +1012,7 @@ const Education = () => {
         isOpen={showAddCourse}
         onClose={() => setShowAddCourse(false)}
         onSubmit={handleAddCourse}
+        institutions={institutions}
       />
 
       {/* Program Management Modal */}
@@ -978,8 +1023,16 @@ const Education = () => {
           onClose={handleCloseManageProgram}
           onUpdate={fetchData}
           courses={courses}
+          institutions={institutions}
         />
       )}
+
+      {/* Institution Management Modal */}
+      <InstitutionManagementModal
+        isOpen={showManageInstitutions}
+        onClose={() => setShowManageInstitutions(false)}
+        onUpdate={fetchData}
+      />
     </div>
   );
 };

@@ -31,13 +31,29 @@ function initializeTables() {
     if (err) console.error('Error creating education table:', err);
   });
 
+  // Institutions table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS institutions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      type TEXT, -- 'university', 'community_college', 'certification_body', 'online', etc.
+      website TEXT,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `, (err) => {
+    if (err) console.error('Error creating institutions table:', err);
+    else insertDefaultInstitutions();
+  });
+
   // Educational Programs (Degrees, Certifications)
   db.run(`
     CREATE TABLE IF NOT EXISTS educational_programs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       type TEXT NOT NULL,
-      institution TEXT,
+      institution_id INTEGER,
+      institution TEXT, -- Keep for backward compatibility
       status TEXT DEFAULT 'planned',
       total_credits INTEGER,
       credits_completed INTEGER DEFAULT 0,
@@ -46,7 +62,8 @@ function initializeTables() {
       completion_date DATE,
       gpa REAL,
       notes TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (institution_id) REFERENCES institutions(id)
     )
   `, (err) => {
     if (err) console.error('Error creating educational_programs table:', err);
@@ -60,8 +77,10 @@ function initializeTables() {
       name TEXT NOT NULL,
       credits INTEGER DEFAULT 3,
       description TEXT,
-      institution TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      institution_id INTEGER,
+      institution TEXT, -- Keep for backward compatibility
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (institution_id) REFERENCES institutions(id)
     )
   `, (err) => {
     if (err) console.error('Error creating courses table:', err);
@@ -175,7 +194,41 @@ function initializeTables() {
     if (err) console.error('Error creating career table:', err);
   });
 
-  console.log('📊 Database tables initialized (no sample data)');
+  console.log('📊 Database tables initialized (with institutions support)');
+}
+
+function insertDefaultInstitutions() {
+  // Check if we already have institutions to avoid duplicates
+  db.get('SELECT COUNT(*) as count FROM institutions', (err, row) => {
+    if (err) return;
+    
+    if (row && row.count === 0) {
+      console.log('🏫 Inserting default institutions...');
+      
+      const defaultInstitutions = [
+        ['Santiago Canyon College', 'community_college', 'https://www.sccollege.edu/'],
+        ['Santa Ana College', 'community_college', 'https://www.sac.edu/'],
+        ['University of California, Irvine', 'university', 'https://uci.edu/'],
+        ['California State University, Fullerton', 'university', 'https://www.fullerton.edu/'],
+        ['Amazon Web Services', 'certification_body', 'https://aws.amazon.com/certification/'],
+        ['Google', 'certification_body', 'https://grow.google/certificates/'],
+        ['Coursera', 'online', 'https://www.coursera.org/'],
+        ['Udemy', 'online', 'https://www.udemy.com/'],
+        ['Other', 'other', null]
+      ];
+      
+      defaultInstitutions.forEach((institution, index) => {
+        db.run(`INSERT INTO institutions (name, type, website) VALUES (?, ?, ?)`,
+          institution,
+          function(err) {
+            if (err) console.error(`Error inserting institution ${index + 1}:`, err);
+          }
+        );
+      });
+      
+      console.log('✅ Default institutions inserted');
+    }
+  });
 }
 
 module.exports = db;
