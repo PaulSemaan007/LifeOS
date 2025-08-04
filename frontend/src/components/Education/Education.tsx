@@ -12,11 +12,14 @@ import {
   ArrowRight,
   BarChart3,
   Users,
-  BookMarked
+  BookMarked,
+  Edit,
+  Settings
 } from 'lucide-react';
 
-// Import the forms
+// Import the forms and enhanced management
 import { AddProgramForm, AddCompletionForm, QuickAddCourseForm } from './EducationForms';
+import ProgramManagementModal from './ProgramManagementModal';
 
 // TypeScript interfaces
 interface Program {
@@ -98,6 +101,11 @@ const educationAPI = {
     headers: { 'Content-Type': 'application/json' }, 
     body: JSON.stringify(data) 
   }).then(r => r.json()),
+  updateProgram: (id: number, data: any) => fetch(`http://localhost:5000/api/education/programs/${id}`, { 
+    method: 'PUT', 
+    headers: { 'Content-Type': 'application/json' }, 
+    body: JSON.stringify(data) 
+  }).then(r => r.json()),
   
   // Courses
   getCourses: () => fetch('http://localhost:5000/api/education/courses').then(r => r.json()),
@@ -105,6 +113,24 @@ const educationAPI = {
     method: 'POST', 
     headers: { 'Content-Type': 'application/json' }, 
     body: JSON.stringify(data) 
+  }).then(r => r.json()),
+  
+  // Program Requirements
+  getProgramRequirements: (programId: number) => fetch(`http://localhost:5000/api/education/programs/${programId}/requirements`).then(r => r.json()),
+  addProgramRequirement: (programId: number, data: any) => fetch(`http://localhost:5000/api/education/programs/${programId}/requirements`, { 
+    method: 'POST', 
+    headers: { 'Content-Type': 'application/json' }, 
+    body: JSON.stringify(data) 
+  }).then(r => r.json()),
+  removeProgramRequirement: (programId: number, requirementId: number) => fetch(`http://localhost:5000/api/education/programs/${programId}/requirements/${requirementId}`, { 
+    method: 'DELETE' 
+  }).then(r => r.json()),
+  
+  // Prerequisites
+  addPrerequisite: (courseId: number, prerequisiteId: number) => fetch(`http://localhost:5000/api/education/courses/${courseId}/prerequisites`, { 
+    method: 'POST', 
+    headers: { 'Content-Type': 'application/json' }, 
+    body: JSON.stringify({ prerequisite_course_id: prerequisiteId }) 
   }).then(r => r.json()),
   
   // Completions
@@ -132,6 +158,8 @@ const Education = () => {
   const [showAddProgram, setShowAddProgram] = useState(false);
   const [showAddCompletion, setShowAddCompletion] = useState(false);
   const [showAddCourse, setShowAddCourse] = useState(false);
+  const [showManageProgram, setShowManageProgram] = useState(false);
+  const [selectedProgramForManagement, setSelectedProgramForManagement] = useState<Program | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -167,6 +195,16 @@ const Education = () => {
       console.error('Error adding program:', error);
       throw error;
     }
+  };
+
+  const handleManageProgram = (program: Program) => {
+    setSelectedProgramForManagement(program);
+    setShowManageProgram(true);
+  };
+
+  const handleCloseManageProgram = () => {
+    setShowManageProgram(false);
+    setSelectedProgramForManagement(null);
   };
 
   const handleAddCourse = async (courseData: any) => {
@@ -532,6 +570,35 @@ const Education = () => {
                           </span>
                         </div>
                       </div>
+                      
+                      {/* Edit Button */}
+                      <button
+                        onClick={() => handleManageProgram(program)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          padding: '0.5rem 0.75rem',
+                          backgroundColor: '#f8fafc',
+                          color: '#3b82f6',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '0.375rem',
+                          fontSize: '0.875rem',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseOver={(e) => {
+                          e.currentTarget.style.backgroundColor = '#3b82f6';
+                          e.currentTarget.style.color = 'white';
+                        }}
+                        onMouseOut={(e) => {
+                          e.currentTarget.style.backgroundColor = '#f8fafc';
+                          e.currentTarget.style.color = '#3b82f6';
+                        }}
+                      >
+                        <Settings size={16} />
+                        Manage
+                      </button>
                     </div>
 
                     {/* Progress Bar */}
@@ -902,6 +969,17 @@ const Education = () => {
         onClose={() => setShowAddCourse(false)}
         onSubmit={handleAddCourse}
       />
+
+      {/* Program Management Modal */}
+      {selectedProgramForManagement && (
+        <ProgramManagementModal
+          program={selectedProgramForManagement}
+          isOpen={showManageProgram}
+          onClose={handleCloseManageProgram}
+          onUpdate={fetchData}
+          courses={courses}
+        />
+      )}
     </div>
   );
 };
