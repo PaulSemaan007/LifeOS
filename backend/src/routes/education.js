@@ -307,6 +307,62 @@ router.post('/transfers', (req, res) => {
 });
 
 // =============================================
+// PROGRAM REQUIREMENTS MANAGEMENT
+// =============================================
+
+// GET requirements for a specific program
+router.get('/programs/:id/requirements', (req, res) => {
+  const query = `
+    SELECT pr.*, c.code, c.name as course_name, c.credits
+    FROM program_requirements pr
+    JOIN courses c ON pr.course_id = c.id
+    WHERE pr.program_id = ?
+    ORDER BY pr.category, c.code
+  `;
+  
+  db.all(query, req.params.id, (err, rows) => {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ data: rows });
+  });
+});
+
+// POST add course requirement to program
+router.post('/programs/:id/requirements', (req, res) => {
+  const { course_id, requirement_type, category } = req.body;
+  
+  db.run(
+    `INSERT INTO program_requirements (program_id, course_id, requirement_type, category) 
+     VALUES (?, ?, ?, ?)`,
+    [req.params.id, course_id, requirement_type || 'required', category || 'General'],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ id: this.lastID, message: 'Course requirement added successfully' });
+    }
+  );
+});
+
+// DELETE remove course requirement from program
+router.delete('/programs/:programId/requirements/:requirementId', (req, res) => {
+  db.run(
+    'DELETE FROM program_requirements WHERE id = ? AND program_id = ?', 
+    [req.params.requirementId, req.params.programId], 
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({ message: 'Course requirement removed successfully' });
+    }
+  );
+});
+
+// =============================================
 // ANALYTICS & REPORTING ROUTES
 // =============================================
 

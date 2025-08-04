@@ -15,6 +15,9 @@ import {
   BookMarked
 } from 'lucide-react';
 
+// Import the forms
+import { AddProgramForm, AddCompletionForm, QuickAddCourseForm } from './EducationForms';
+
 // TypeScript interfaces
 interface Program {
   id: number;
@@ -125,6 +128,11 @@ const Education = () => {
   const [selectedProgram, setSelectedProgram] = useState<Program | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
+  // Modal states
+  const [showAddProgram, setShowAddProgram] = useState(false);
+  const [showAddCompletion, setShowAddCompletion] = useState(false);
+  const [showAddCourse, setShowAddCourse] = useState(false);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -146,6 +154,40 @@ const Education = () => {
       console.error('Error fetching education data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Form handlers
+  const handleAddProgram = async (programData: any) => {
+    try {
+      await educationAPI.createProgram(programData);
+      await fetchData(); // Refresh data
+      console.log('Program added successfully!');
+    } catch (error) {
+      console.error('Error adding program:', error);
+      throw error;
+    }
+  };
+
+  const handleAddCourse = async (courseData: any) => {
+    try {
+      await educationAPI.createCourse(courseData);
+      await fetchData(); // Refresh data
+      console.log('Course added successfully!');
+    } catch (error) {
+      console.error('Error adding course:', error);
+      throw error;
+    }
+  };
+
+  const handleAddCompletion = async (completionData: any) => {
+    try {
+      await educationAPI.createCompletion(completionData);
+      await fetchData(); // Refresh data
+      console.log('Completion added successfully!');
+    } catch (error) {
+      console.error('Error adding completion:', error);
+      throw error;
     }
   };
 
@@ -247,6 +289,69 @@ const Education = () => {
             </button>
           );
         })}
+      </div>
+
+      {/* Action Buttons */}
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
+        <button 
+          onClick={() => setShowAddProgram(true)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.75rem 1rem',
+            backgroundColor: '#3b82f6',
+            color: 'white',
+            border: 'none',
+            borderRadius: '0.375rem',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            cursor: 'pointer'
+          }}
+        >
+          <Plus size={16} />
+          Add Program
+        </button>
+        
+        <button 
+          onClick={() => setShowAddCompletion(true)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.75rem 1rem',
+            backgroundColor: '#16a34a',
+            color: 'white',
+            border: 'none',
+            borderRadius: '0.375rem',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            cursor: 'pointer'
+          }}
+        >
+          <CheckCircle size={16} />
+          Record Completion
+        </button>
+
+        <button 
+          onClick={() => setShowAddCourse(true)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.75rem 1rem',
+            backgroundColor: '#d97706',
+            color: 'white',
+            border: 'none',
+            borderRadius: '0.375rem',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            cursor: 'pointer'
+          }}
+        >
+          <BookOpen size={16} />
+          Add Course
+        </button>
       </div>
 
       {/* Overview Tab */}
@@ -360,6 +465,26 @@ const Education = () => {
                   No Educational Programs Yet
                 </h4>
                 <p>Start by adding your degree programs, certifications, or courses you're pursuing.</p>
+                <button 
+                  onClick={() => setShowAddProgram(true)}
+                  style={{
+                    marginTop: '1rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.75rem 1rem',
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '0.375rem',
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Plus size={16} />
+                  Add Your First Program
+                </button>
               </div>
             ) : (
               <div style={{ display: 'grid', gap: '1rem' }}>
@@ -508,133 +633,275 @@ const Education = () => {
         </div>
       )}
 
-      {/* Programs Tab */}
-      {activeTab === 'programs' && (
+      {/* Courses Tab */}
+      {activeTab === 'courses' && (
         <div>
-          <div style={{ marginBottom: '2rem' }}>
-            <button style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.75rem 1rem',
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '0.375rem',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              cursor: 'pointer'
-            }}>
-              <Plus size={16} />
-              Add Educational Program
-            </button>
-          </div>
-
-          <div style={{ display: 'grid', gap: '1.5rem' }}>
-            {programs.map(program => (
-              <div key={program.id} style={{
-                background: 'white',
-                borderRadius: '0.75rem',
-                padding: '1.5rem',
-                boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)',
-                border: '1px solid #e2e8f0'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{ 
-                      padding: '1rem', 
-                      borderRadius: '0.5rem', 
-                      backgroundColor: getTypeColor(program.type) + '20',
-                      color: getTypeColor(program.type)
-                    }}>
-                      {getTypeIcon(program.type)}
-                    </div>
-                    <div>
-                      <h3 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#1e293b', marginBottom: '0.5rem' }}>
-                        {program.name}
-                      </h3>
-                      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <span style={{ 
-                          padding: '0.25rem 0.75rem', 
-                          backgroundColor: getStatusColor(program.status) + '20',
-                          color: getStatusColor(program.status),
+          <div style={{
+            background: 'white',
+            borderRadius: '0.75rem',
+            padding: '1.5rem',
+            boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)',
+            border: '1px solid #e2e8f0'
+          }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#1e293b', marginBottom: '1rem' }}>
+              Course Catalog
+            </h3>
+            
+            {courses.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                <BookOpen size={48} style={{ margin: '0 auto 1rem', color: '#d1d5db' }} />
+                <h4 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '0.5rem', color: '#374151' }}>
+                  No Courses Yet
+                </h4>
+                <p>Add courses to build your academic catalog.</p>
+                <button 
+                  onClick={() => setShowAddCourse(true)}
+                  style={{
+                    marginTop: '1rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.75rem 1rem',
+                    backgroundColor: '#d97706',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '0.375rem',
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Plus size={16} />
+                  Add Your First Course
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                {courses.map(course => (
+                  <div key={course.id} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '1rem',
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '0.5rem',
+                    border: '1px solid #e2e8f0'
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
+                        <span style={{
+                          padding: '0.25rem 0.75rem',
+                          backgroundColor: '#3b82f6',
+                          color: 'white',
                           borderRadius: '9999px',
                           fontSize: '0.875rem',
-                          fontWeight: '500'
+                          fontWeight: '600'
                         }}>
-                          {program.status}
+                          {course.code}
                         </span>
-                        {program.institution && (
+                        <h4 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#1e293b', margin: 0 }}>
+                          {course.name}
+                        </h4>
+                      </div>
+                      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.875rem', color: '#64748b' }}>
+                          {course.credits} credits
+                        </span>
+                        {course.institution && (
                           <span style={{ fontSize: '0.875rem', color: '#64748b' }}>
-                            {program.institution}
+                            {course.institution}
+                          </span>
+                        )}
+                        {course.prerequisites && (
+                          <span style={{ fontSize: '0.875rem', color: '#d97706' }}>
+                            Prerequisites: {course.prerequisites}
                           </span>
                         )}
                       </div>
                     </div>
-                  </div>
-                </div>
-
-                {/* Detailed Stats */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
-                  <div style={{ textAlign: 'center', padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '0.5rem' }}>
-                    <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1e293b' }}>
-                      {program.completed_courses}
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button
+                        onClick={() => {
+                          // Pre-fill the completion form with this course
+                          setShowAddCompletion(true);
+                        }}
+                        style={{
+                          padding: '0.5rem 0.75rem',
+                          backgroundColor: '#16a34a',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '0.375rem',
+                          fontSize: '0.875rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Mark Complete
+                      </button>
                     </div>
-                    <div style={{ fontSize: '0.875rem', color: '#64748b' }}>Courses Completed</div>
                   </div>
-                  {program.total_credits && (
-                    <div style={{ textAlign: 'center', padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '0.5rem' }}>
-                      <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1e293b' }}>
-                        {program.credits_earned}/{program.total_credits}
-                      </div>
-                      <div style={{ fontSize: '0.875rem', color: '#64748b' }}>Credits</div>
-                    </div>
-                  )}
-                  {program.gpa && (
-                    <div style={{ textAlign: 'center', padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '0.5rem' }}>
-                      <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1e293b' }}>
-                        {program.gpa.toFixed(2)}
-                      </div>
-                      <div style={{ fontSize: '0.875rem', color: '#64748b' }}>GPA</div>
-                    </div>
-                  )}
-                </div>
-
-                {program.notes && (
-                  <div style={{ 
-                    padding: '1rem', 
-                    backgroundColor: '#f8fafc', 
-                    borderRadius: '0.5rem',
-                    border: '1px solid #e2e8f0',
-                    marginTop: '1rem'
-                  }}>
-                    <p style={{ color: '#475569', fontSize: '0.875rem', lineHeight: '1.5', margin: 0 }}>
-                      {program.notes}
-                    </p>
-                  </div>
-                )}
+                ))}
               </div>
-            ))}
+            )}
           </div>
         </div>
       )}
 
-      {/* Other tabs would go here... */}
-      {activeTab === 'courses' && (
-        <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
-          <BookMarked size={48} style={{ margin: '0 auto 1rem', color: '#d1d5db' }} />
-          <h3>Courses Management</h3>
-          <p>Course management interface coming soon...</p>
+      {/* Completions Tab */}
+      {activeTab === 'completions' && (
+        <div>
+          <div style={{
+            background: 'white',
+            borderRadius: '0.75rem',
+            padding: '1.5rem',
+            boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)',
+            border: '1px solid #e2e8f0'
+          }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#1e293b', marginBottom: '1rem' }}>
+              Course Completions
+            </h3>
+            
+            {completions.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                <CheckCircle size={48} style={{ margin: '0 auto 1rem', color: '#d1d5db' }} />
+                <h4 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '0.5rem', color: '#374151' }}>
+                  No Completions Yet
+                </h4>
+                <p>Record your completed courses with grades and semesters.</p>
+                <button 
+                  onClick={() => setShowAddCompletion(true)}
+                  style={{
+                    marginTop: '1rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.75rem 1rem',
+                    backgroundColor: '#16a34a',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '0.375rem',
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <CheckCircle size={16} />
+                  Record First Completion
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                {completions.map(completion => (
+                  <div key={completion.id} style={{
+                    padding: '1rem',
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '0.5rem',
+                    border: '1px solid #e2e8f0'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
+                          <span style={{
+                            padding: '0.25rem 0.75rem',
+                            backgroundColor: '#3b82f6',
+                            color: 'white',
+                            borderRadius: '9999px',
+                            fontSize: '0.875rem',
+                            fontWeight: '600'
+                          }}>
+                            {completion.code}
+                          </span>
+                          <h4 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#1e293b', margin: 0 }}>
+                            {completion.course_name}
+                          </h4>
+                        </div>
+                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                          {completion.program_name && (
+                            <span style={{ fontSize: '0.875rem', color: '#7c3aed' }}>
+                              {completion.program_name}
+                            </span>
+                          )}
+                          <span style={{ fontSize: '0.875rem', color: '#64748b' }}>
+                            {completion.semester} {completion.year}
+                          </span>
+                          <span style={{ fontSize: '0.875rem', color: '#64748b' }}>
+                            {completion.credits} credits
+                          </span>
+                          <span style={{ 
+                            padding: '0.25rem 0.75rem', 
+                            backgroundColor: getStatusColor(completion.status) + '20',
+                            color: getStatusColor(completion.status),
+                            borderRadius: '9999px',
+                            fontSize: '0.875rem',
+                            fontWeight: '500'
+                          }}>
+                            {completion.status}
+                          </span>
+                        </div>
+                      </div>
+                      {completion.grade && (
+                        <div style={{
+                          padding: '0.5rem 1rem',
+                          backgroundColor: getGradeColor(completion.grade) + '20',
+                          color: getGradeColor(completion.grade),
+                          borderRadius: '0.375rem',
+                          fontSize: '1.125rem',
+                          fontWeight: '700'
+                        }}>
+                          {completion.grade}
+                        </div>
+                      )}
+                    </div>
+                    {completion.notes && (
+                      <div style={{ 
+                        marginTop: '0.5rem',
+                        padding: '0.75rem',
+                        backgroundColor: 'white',
+                        borderRadius: '0.375rem',
+                        border: '1px solid #e2e8f0',
+                        fontSize: '0.875rem',
+                        color: '#64748b'
+                      }}>
+                        {completion.notes}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      {activeTab === 'completions' && (
+      {/* Other tabs placeholder */}
+      {activeTab === 'programs' && (
         <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
-          <CheckCircle size={48} style={{ margin: '0 auto 1rem', color: '#d1d5db' }} />
-          <h3>Course Completions</h3>
-          <p>Completion tracking interface coming soon...</p>
+          <BookMarked size={48} style={{ margin: '0 auto 1rem', color: '#d1d5db' }} />
+          <h3>Detailed Programs Management</h3>
+          <p>Advanced program management interface coming soon...</p>
+          <p>For now, use the Overview tab to see your programs.</p>
         </div>
       )}
+
+      {/* Modal Forms */}
+      <AddProgramForm 
+        isOpen={showAddProgram}
+        onClose={() => setShowAddProgram(false)}
+        onSubmit={handleAddProgram}
+      />
+      
+      <AddCompletionForm 
+        isOpen={showAddCompletion}
+        onClose={() => setShowAddCompletion(false)}
+        onSubmit={handleAddCompletion}
+        programs={programs}
+        courses={courses}
+      />
+
+      <QuickAddCourseForm 
+        isOpen={showAddCourse}
+        onClose={() => setShowAddCourse(false)}
+        onSubmit={handleAddCourse}
+      />
     </div>
   );
 };
