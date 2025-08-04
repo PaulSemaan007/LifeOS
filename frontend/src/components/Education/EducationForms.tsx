@@ -2,6 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { X, Plus, Save, Calendar, Book, Award, GraduationCap } from 'lucide-react';
 
 // TypeScript interfaces
+interface Institution {
+  id: number;
+  name: string;
+  type?: string;
+  website?: string;
+  notes?: string;
+  created_at: string;
+}
+
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -57,6 +66,7 @@ interface AddProgramFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: any) => Promise<void>;
+  institutions?: Institution[];
 }
 
 interface AddCompletionFormProps {
@@ -71,6 +81,7 @@ interface QuickAddCourseFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: any) => Promise<void>;
+  institutions?: Institution[];
 }
 
 // Modal wrapper component
@@ -221,10 +232,11 @@ const Textarea = ({ value, onChange, placeholder, rows = 3, ...props }: Textarea
 );
 
 // Add Educational Program Form
-export const AddProgramForm = ({ isOpen, onClose, onSubmit }: AddProgramFormProps) => {
+export const AddProgramForm = ({ isOpen, onClose, onSubmit, institutions = [] }: AddProgramFormProps) => {
   const [formData, setFormData] = useState({
     name: '',
     type: 'bachelor',
+    institution_id: '',
     institution: '',
     status: 'planned',
     total_credits: '',
@@ -243,9 +255,11 @@ export const AddProgramForm = ({ isOpen, onClose, onSubmit }: AddProgramFormProp
     const submitData = {
       ...formData,
       total_credits: formData.total_credits ? parseInt(formData.total_credits) : null,
+      institution_id: formData.institution_id ? parseInt(formData.institution_id) : null,
+      institution: formData.institution_id ? null : (formData.institution.trim() || null),
       start_date: formData.start_date || null,
       target_completion_date: formData.target_completion_date || null,
-      notes: formData.notes || null
+      notes: formData.notes.trim() || null
     };
 
     try {
@@ -253,6 +267,7 @@ export const AddProgramForm = ({ isOpen, onClose, onSubmit }: AddProgramFormProp
       setFormData({
         name: '',
         type: 'bachelor',
+        institution_id: '',
         institution: '',
         status: 'planned',
         total_credits: '',
@@ -307,11 +322,28 @@ export const AddProgramForm = ({ isOpen, onClose, onSubmit }: AddProgramFormProp
           </div>
 
           <FormField label="Institution">
-            <Input
-              value={formData.institution}
-              onChange={(value) => setFormData(prev => ({ ...prev, institution: value }))}
-              placeholder="e.g., University of California, Berkeley"
-            />
+            <Select
+              value={formData.institution_id}
+              onChange={(value) => setFormData(prev => ({ ...prev, institution_id: value, institution: '' }))}
+            >
+              <option value="">Select an institution...</option>
+              {institutions.map(institution => (
+                <option key={institution.id} value={institution.id}>
+                  {institution.name}
+                </option>
+              ))}
+            </Select>
+            
+            {/* Custom institution input - only show if no institution selected */}
+            {!formData.institution_id && (
+              <div style={{ marginTop: '0.5rem' }}>
+                <Input
+                  value={formData.institution}
+                  onChange={(value) => setFormData(prev => ({ ...prev, institution: value }))}
+                  placeholder="Or type a custom institution name"
+                />
+              </div>
+            )}
           </FormField>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
@@ -655,11 +687,12 @@ export const AddCompletionForm = ({ isOpen, onClose, onSubmit, programs = [], co
 };
 
 // Quick Add Course Form (simpler version)
-export const QuickAddCourseForm = ({ isOpen, onClose, onSubmit }: QuickAddCourseFormProps) => {
+export const QuickAddCourseForm = ({ isOpen, onClose, onSubmit, institutions = [] }: QuickAddCourseFormProps) => {
   const [formData, setFormData] = useState({
     code: '',
     name: '',
     credits: '3',
+    institution_id: '',
     institution: ''
   });
 
@@ -672,7 +705,8 @@ export const QuickAddCourseForm = ({ isOpen, onClose, onSubmit }: QuickAddCourse
     const submitData = {
       ...formData,
       credits: parseInt(formData.credits),
-      institution: formData.institution || null
+      institution_id: formData.institution_id ? parseInt(formData.institution_id) : null,
+      institution: formData.institution_id ? null : (formData.institution.trim() || null)
     };
 
     try {
@@ -681,6 +715,7 @@ export const QuickAddCourseForm = ({ isOpen, onClose, onSubmit }: QuickAddCourse
         code: '',
         name: '',
         credits: '3',
+        institution_id: '',
         institution: ''
       });
       onClose();
@@ -727,11 +762,28 @@ export const QuickAddCourseForm = ({ isOpen, onClose, onSubmit }: QuickAddCourse
           </div>
 
           <FormField label="Institution">
-            <Input
-              value={formData.institution}
-              onChange={(value) => setFormData(prev => ({ ...prev, institution: value }))}
-              placeholder="e.g., Community College"
-            />
+            <Select
+              value={formData.institution_id}
+              onChange={(value) => setFormData(prev => ({ ...prev, institution_id: value, institution: '' }))}
+            >
+              <option value="">Select an institution...</option>
+              {institutions.map(institution => (
+                <option key={institution.id} value={institution.id}>
+                  {institution.name}
+                </option>
+              ))}
+            </Select>
+            
+            {/* Custom institution input - only show if no institution selected */}
+            {!formData.institution_id && (
+              <div style={{ marginTop: '0.5rem' }}>
+                <Input
+                  value={formData.institution}
+                  onChange={(value) => setFormData(prev => ({ ...prev, institution: value }))}
+                  placeholder="Or type a custom institution name"
+                />
+              </div>
+            )}
           </FormField>
         </div>
 

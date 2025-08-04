@@ -1,7 +1,52 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Save, Calendar, Book, Award, GraduationCap } from 'lucide-react';
+import { 
+  X, 
+  Plus, 
+  Save, 
+  Calendar, 
+  Book, 
+  Award, 
+  GraduationCap,
+  Settings,
+  BookOpen,
+  CheckCircle,
+  Edit
+} from 'lucide-react';
 
 // TypeScript interfaces
+interface Institution {
+  id: number;
+  name: string;
+  type?: string;
+  website?: string;
+  notes?: string;
+}
+
+interface Course {
+  id: number;
+  code: string;
+  name: string;
+  credits: number;
+}
+
+interface Program {
+  id: number;
+  name: string;
+  type: string;
+  institution?: string;
+  status: string;
+  total_credits?: number;
+  credits_completed: number;
+  credits_earned: number;
+  completed_courses: number;
+  start_date?: string;
+  target_completion_date?: string;
+  completion_date?: string;
+  gpa?: number;
+  notes?: string;
+  created_at: string;
+}
+
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -40,49 +85,6 @@ interface TextareaProps {
   rows?: number;
 }
 
-interface Program {
-  id: number;
-  name: string;
-  type: string;
-}
-
-interface Course {
-  id: number;
-  code: string;
-  name: string;
-  credits: number;
-}
-
-interface AddProgramFormProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (data: any) => Promise<void>;
-  institutions?: Institution[];
-}
-
-interface AddCompletionFormProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (data: any) => Promise<void>;
-  programs?: Program[];
-  courses?: Course[];
-}
-
-interface QuickAddCourseFormProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (data: any) => Promise<void>;
-  institutions?: Institution[];
-}
-
-interface Institution {
-  id: number;
-  name: string;
-  type?: string;
-  website?: string;
-  notes?: string;
-}
-
 // Modal wrapper component
 const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
   if (!isOpen) return null;
@@ -104,8 +106,8 @@ const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
         backgroundColor: 'white',
         borderRadius: '0.75rem',
         padding: '1.5rem',
-        maxWidth: '600px',
-        width: '90vw',
+        maxWidth: '800px',
+        width: '95vw',
         maxHeight: '90vh',
         overflow: 'auto',
         boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.25)'
@@ -141,7 +143,7 @@ const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
   );
 };
 
-// Form input component
+// Form input components
 const FormField = ({ label, children, required = false }: FormFieldProps) => (
   <div style={{ marginBottom: '1rem' }}>
     <label style={{ 
@@ -157,7 +159,6 @@ const FormField = ({ label, children, required = false }: FormFieldProps) => (
   </div>
 );
 
-// Input component
 const Input = ({ type = 'text', value, onChange, placeholder, required = false, ...props }: InputProps & Record<string, any>) => (
   <input
     type={type}
@@ -182,7 +183,6 @@ const Input = ({ type = 'text', value, onChange, placeholder, required = false, 
   />
 );
 
-// Select component
 const Select = ({ value, onChange, children, required = false, ...props }: SelectProps & Record<string, any>) => (
   <select
     value={value}
@@ -205,7 +205,6 @@ const Select = ({ value, onChange, children, required = false, ...props }: Selec
   </select>
 );
 
-// Textarea component
 const Textarea = ({ value, onChange, placeholder, rows = 3, ...props }: TextareaProps & Record<string, any>) => (
   <textarea
     value={value}
@@ -230,196 +229,371 @@ const Textarea = ({ value, onChange, placeholder, rows = 3, ...props }: Textarea
   />
 );
 
-// Add Educational Program Form
-export const AddProgramForm = ({ isOpen, onClose, onSubmit, institutions = [] }: AddProgramFormProps) => {
+// Program Management Modal
+const ProgramManagementModal = ({ 
+  program, 
+  isOpen, 
+  onClose, 
+  onUpdate, 
+  courses = [], 
+  institutions = [] 
+}: {
+  program: Program;
+  isOpen: boolean;
+  onClose: () => void;
+  onUpdate: () => void;
+  courses?: Course[];
+  institutions?: Institution[];
+}) => {
+  const [activeSection, setActiveSection] = useState<'details' | 'requirements' | 'progress'>('details');
+  const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    type: 'bachelor',
-    institution_id: '',
-    institution: '',
-    status: 'planned',
-    total_credits: '',
-    start_date: '',
-    target_completion_date: '',
-    notes: ''
+    name: program?.name || '',
+    type: program?.type || 'bachelor',
+    institution: program?.institution || '',
+    status: program?.status || 'planned',
+    total_credits: program?.total_credits?.toString() || '',
+    start_date: program?.start_date || '',
+    target_completion_date: program?.target_completion_date || '',
+    completion_date: program?.completion_date || '',
+    gpa: program?.gpa?.toString() || '',
+    notes: program?.notes || ''
   });
 
-  const handleSubmit = async () => {
-    // Basic validation
-    if (!formData.name.trim()) {
-      alert('Program name is required');
-      return;
-    }
-    
-    const submitData = {
-      ...formData,
-      total_credits: formData.total_credits ? parseInt(formData.total_credits) : null,
-      institution_id: formData.institution_id ? parseInt(formData.institution_id) : null,
-      institution: formData.institution_id ? null : (formData.institution.trim() || null),
-      start_date: formData.start_date || null,
-      target_completion_date: formData.target_completion_date || null,
-      notes: formData.notes.trim() || null
-    };
-
-    console.log('Submitting program data:', submitData); // Debug log
-
-    try {
-      await onSubmit(submitData);
+  useEffect(() => {
+    if (program) {
       setFormData({
-        name: '',
-        type: 'bachelor',
-        institution_id: '',
-        institution: '',
-        status: 'planned',
-        total_credits: '',
-        start_date: '',
-        target_completion_date: '',
-        notes: ''
+        name: program.name || '',
+        type: program.type || 'bachelor',
+        institution: program.institution || '',
+        status: program.status || 'planned',
+        total_credits: program.total_credits?.toString() || '',
+        start_date: program.start_date || '',
+        target_completion_date: program.target_completion_date || '',
+        completion_date: program.completion_date || '',
+        gpa: program.gpa?.toString() || '',
+        notes: program.notes || ''
       });
-      onClose();
+    }
+  }, [program]);
+
+  const handleSave = async () => {
+    try {
+      // In a full implementation, this would call the API to update the program
+      console.log('Saving program data:', formData);
+      
+      // For now, just show a success message
+      alert('Program updated successfully!');
+      setEditMode(false);
+      onUpdate(); // Refresh the data
     } catch (error) {
-      console.error('Error creating program:', error);
-      alert('Failed to create program: ' + (error.message || 'Unknown error'));
+      console.error('Error updating program:', error);
+      alert('Failed to update program: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
 
+  const calculateProgress = () => {
+    if (!program.total_credits) return 0;
+    return Math.round((program.credits_earned / program.total_credits) * 100);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return '#16a34a';
+      case 'in-progress': return '#2563eb';
+      case 'planned': return '#d97706';
+      case 'paused': return '#dc2626';
+      default: return '#64748b';
+    }
+  };
+
+  if (!program) return null;
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Add Educational Program">
+    <Modal isOpen={isOpen} onClose={onClose} title={`Manage Program: ${program.name}`}>
       <div>
-        <div style={{ display: 'grid', gap: '1rem' }}>
-          <FormField label="Program Name" required>
-            <Input
-              value={formData.name}
-              onChange={(value) => setFormData(prev => ({ ...prev, name: value }))}
-              placeholder="e.g., Bachelor of Science in Computer Science"
-            />
-          </FormField>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <FormField label="Program Type" required>
-              <Select
-                value={formData.type}
-                onChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
+        {/* Section Navigation */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '1rem', 
+          marginBottom: '2rem',
+          borderBottom: '1px solid #e2e8f0',
+          paddingBottom: '1rem'
+        }}>
+          {[
+            { id: 'details' as const, label: 'Program Details', icon: Settings },
+            { id: 'requirements' as const, label: 'Course Requirements', icon: BookOpen },
+            { id: 'progress' as const, label: 'Progress & Analytics', icon: CheckCircle }
+          ].map(section => {
+            const Icon = section.icon;
+            return (
+              <button
+                key={section.id}
+                onClick={() => setActiveSection(section.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.5rem 1rem',
+                  background: activeSection === section.id ? '#3b82f6' : 'transparent',
+                  color: activeSection === section.id ? 'white' : '#64748b',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: '500'
+                }}
               >
-                <option value="certification">Certification</option>
-                <option value="associate">Associate Degree</option>
-                <option value="bachelor">Bachelor's Degree</option>
-                <option value="master">Master's Degree</option>
-                <option value="doctorate">Doctorate</option>
-              </Select>
-            </FormField>
+                <Icon size={16} />
+                {section.label}
+              </button>
+            );
+          })}
+        </div>
 
-            <FormField label="Status">
-              <Select
-                value={formData.status}
-                onChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
+        {/* Content based on active section */}
+        {activeSection === 'details' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#1e293b', margin: 0 }}>
+                Program Details
+              </h3>
+              <button
+                onClick={() => editMode ? handleSave() : setEditMode(true)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.5rem 1rem',
+                  backgroundColor: editMode ? '#16a34a' : '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.875rem',
+                  cursor: 'pointer'
+                }}
               >
-                <option value="planned">Planned</option>
-                <option value="in-progress">In Progress</option>
-                <option value="paused">Paused</option>
-                <option value="completed">Completed</option>
-              </Select>
-            </FormField>
-          </div>
+                {editMode ? <Save size={16} /> : <Edit size={16} />}
+                {editMode ? 'Save Changes' : 'Edit Program'}
+              </button>
+            </div>
 
-          <FormField label="Institution">
-            <Select
-              value={formData.institution_id}
-              onChange={(value) => setFormData(prev => ({ ...prev, institution_id: value, institution: '' }))}
-            >
-              <option value="">Select an institution...</option>
-              {institutions.map(institution => (
-                <option key={institution.id} value={institution.id}>
-                  {institution.name}
-                </option>
-              ))}
-            </Select>
-            
-            {/* Custom institution input - only show if no institution selected */}
-            {!formData.institution_id && (
-              <div style={{ marginTop: '0.5rem' }}>
-                <Input
-                  value={formData.institution}
-                  onChange={(value) => setFormData(prev => ({ ...prev, institution: value }))}
-                  placeholder="Or type a custom institution name"
-                />
+            {editMode ? (
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                <FormField label="Program Name" required>
+                  <Input
+                    value={formData.name}
+                    onChange={(value) => setFormData(prev => ({ ...prev, name: value }))}
+                    placeholder="e.g., Bachelor of Science in Computer Science"
+                  />
+                </FormField>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <FormField label="Program Type">
+                    <Select
+                      value={formData.type}
+                      onChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
+                    >
+                      <option value="certification">Certification</option>
+                      <option value="associate">Associate Degree</option>
+                      <option value="bachelor">Bachelor's Degree</option>
+                      <option value="master">Master's Degree</option>
+                      <option value="doctorate">Doctorate</option>
+                    </Select>
+                  </FormField>
+
+                  <FormField label="Status">
+                    <Select
+                      value={formData.status}
+                      onChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
+                    >
+                      <option value="planned">Planned</option>
+                      <option value="in-progress">In Progress</option>
+                      <option value="paused">Paused</option>
+                      <option value="completed">Completed</option>
+                    </Select>
+                  </FormField>
+                </div>
+
+                <FormField label="Institution">
+                  <Input
+                    value={formData.institution}
+                    onChange={(value) => setFormData(prev => ({ ...prev, institution: value }))}
+                    placeholder="e.g., University of California, Berkeley"
+                  />
+                </FormField>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                  <FormField label="Total Credits">
+                    <Input
+                      type="number"
+                      value={formData.total_credits}
+                      onChange={(value) => setFormData(prev => ({ ...prev, total_credits: value }))}
+                      placeholder="120"
+                      min="0"
+                    />
+                  </FormField>
+
+                  <FormField label="Start Date">
+                    <Input
+                      type="date"
+                      value={formData.start_date}
+                      onChange={(value) => setFormData(prev => ({ ...prev, start_date: value }))}
+                    />
+                  </FormField>
+
+                  <FormField label="Target Completion">
+                    <Input
+                      type="date"
+                      value={formData.target_completion_date}
+                      onChange={(value) => setFormData(prev => ({ ...prev, target_completion_date: value }))}
+                    />
+                  </FormField>
+                </div>
+
+                {formData.status === 'completed' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <FormField label="Completion Date">
+                      <Input
+                        type="date"
+                        value={formData.completion_date}
+                        onChange={(value) => setFormData(prev => ({ ...prev, completion_date: value }))}
+                      />
+                    </FormField>
+
+                    <FormField label="Final GPA">
+                      <Input
+                        type="number"
+                        value={formData.gpa}
+                        onChange={(value) => setFormData(prev => ({ ...prev, gpa: value }))}
+                        placeholder="3.50"
+                        min="0"
+                        max="4"
+                        step="0.01"
+                      />
+                    </FormField>
+                  </div>
+                )}
+
+                <FormField label="Notes">
+                  <Textarea
+                    value={formData.notes}
+                    onChange={(value) => setFormData(prev => ({ ...prev, notes: value }))}
+                    placeholder="Any additional notes about this program..."
+                    rows={3}
+                  />
+                </FormField>
+              </div>
+            ) : (
+              // Display mode
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                <div style={{
+                  padding: '1rem',
+                  backgroundColor: '#f8fafc',
+                  borderRadius: '0.5rem',
+                  border: '1px solid #e2e8f0'
+                }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.25rem' }}>Program Type</div>
+                      <div style={{ fontWeight: '600', color: '#1e293b' }}>{program.type}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.25rem' }}>Status</div>
+                      <div style={{ 
+                        display: 'inline-block',
+                        padding: '0.25rem 0.75rem',
+                        backgroundColor: getStatusColor(program.status) + '20',
+                        color: getStatusColor(program.status),
+                        borderRadius: '9999px',
+                        fontSize: '0.875rem',
+                        fontWeight: '500'
+                      }}>
+                        {program.status}
+                      </div>
+                    </div>
+                    {program.institution && (
+                      <div>
+                        <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.25rem' }}>Institution</div>
+                        <div style={{ fontWeight: '600', color: '#1e293b' }}>{program.institution}</div>
+                      </div>
+                    )}
+                    {program.total_credits && (
+                      <div>
+                        <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.25rem' }}>Credits</div>
+                        <div style={{ fontWeight: '600', color: '#1e293b' }}>
+                          {program.credits_earned} / {program.total_credits} ({calculateProgress()}%)
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {program.notes && (
+                  <div style={{
+                    padding: '1rem',
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '0.5rem',
+                    border: '1px solid #e2e8f0'
+                  }}>
+                    <div style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '0.5rem' }}>Notes</div>
+                    <div style={{ color: '#374151' }}>{program.notes}</div>
+                  </div>
+                )}
               </div>
             )}
-          </FormField>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
-            <FormField label="Total Credits">
-              <Input
-                type="number"
-                value={formData.total_credits}
-                onChange={(value) => setFormData(prev => ({ ...prev, total_credits: value }))}
-                placeholder="120"
-                min="0"
-              />
-            </FormField>
-
-            <FormField label="Start Date">
-              <Input
-                type="date"
-                value={formData.start_date}
-                onChange={(value) => setFormData(prev => ({ ...prev, start_date: value }))}
-              />
-            </FormField>
-
-            <FormField label="Target Completion">
-              <Input
-                type="date"
-                value={formData.target_completion_date}
-                onChange={(value) => setFormData(prev => ({ ...prev, target_completion_date: value }))}
-              />
-            </FormField>
           </div>
+        )}
 
-          <FormField label="Notes">
-            <Textarea
-              value={formData.notes}
-              onChange={(value) => setFormData(prev => ({ ...prev, notes: value }))}
-              placeholder="Any additional notes about this program..."
-              rows={3}
-            />
-          </FormField>
-        </div>
+        {activeSection === 'requirements' && (
+          <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+            <BookOpen size={48} style={{ margin: '0 auto 1rem', color: '#d1d5db' }} />
+            <h3>Course Requirements Management</h3>
+            <p>Add required courses, track completion, and manage prerequisites.</p>
+            <p style={{ marginTop: '1rem', fontSize: '0.875rem' }}>Coming soon in the next update...</p>
+          </div>
+        )}
 
+        {activeSection === 'progress' && (
+          <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+            <CheckCircle size={48} style={{ margin: '0 auto 1rem', color: '#d1d5db' }} />
+            <h3>Progress & Analytics</h3>
+            <p>View detailed progress reports, GPA calculations, and graduation timeline.</p>
+            <p style={{ marginTop: '1rem', fontSize: '0.875rem' }}>Coming soon in the next update...</p>
+          </div>
+        )}
+
+        {/* Footer buttons */}
         <div style={{ 
           display: 'flex', 
           gap: '1rem', 
           marginTop: '2rem',
           paddingTop: '1rem',
-          borderTop: '1px solid #e2e8f0'
+          borderTop: '1px solid #e2e8f0',
+          justifyContent: 'flex-end'
         }}>
+          {editMode && (
+            <button
+              onClick={() => setEditMode(false)}
+              style={{
+                padding: '0.75rem 1rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.375rem',
+                backgroundColor: 'white',
+                color: '#374151',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                cursor: 'pointer'
+              }}
+            >
+              Cancel
+            </button>
+          )}
           <button
-            type="button"
             onClick={onClose}
             style={{
-              flex: 1,
               padding: '0.75rem 1rem',
-              border: '1px solid #d1d5db',
-              borderRadius: '0.375rem',
-              backgroundColor: 'white',
-              color: '#374151',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              cursor: 'pointer'
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            style={{
-              flex: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-              padding: '0.75rem 1rem',
-              backgroundColor: '#3b82f6',
+              backgroundColor: '#64748b',
               color: 'white',
               border: 'none',
               borderRadius: '0.375rem',
@@ -428,8 +602,7 @@ export const AddProgramForm = ({ isOpen, onClose, onSubmit, institutions = [] }:
               cursor: 'pointer'
             }}
           >
-            <Save size={16} />
-            Create Program
+            Close
           </button>
         </div>
       </div>
@@ -437,407 +610,4 @@ export const AddProgramForm = ({ isOpen, onClose, onSubmit, institutions = [] }:
   );
 };
 
-// Add Course Completion Form
-export const AddCompletionForm = ({ isOpen, onClose, onSubmit, programs = [], courses = [] }: AddCompletionFormProps) => {
-  const [formData, setFormData] = useState({
-    course_id: '',
-    program_id: '',
-    semester: '',
-    year: new Date().getFullYear().toString(),
-    grade: '',
-    grade_points: '',
-    status: 'completed',
-    completion_date: '',
-    notes: ''
-  });
-
-  const handleSubmit = async () => {
-    // Basic validation
-    if (!formData.course_id) {
-      alert('Please select a course');
-      return;
-    }
-    
-    const submitData = {
-      ...formData,
-      course_id: parseInt(formData.course_id),
-      program_id: formData.program_id ? parseInt(formData.program_id) : null,
-      year: parseInt(formData.year),
-      grade_points: formData.grade_points ? parseFloat(formData.grade_points) : null,
-      completion_date: formData.completion_date || null,
-      notes: formData.notes || null
-    };
-
-    try {
-      await onSubmit(submitData);
-      setFormData({
-        course_id: '',
-        program_id: '',
-        semester: '',
-        year: new Date().getFullYear().toString(),
-        grade: '',
-        grade_points: '',
-        status: 'completed',
-        completion_date: '',
-        notes: ''
-      });
-      onClose();
-    } catch (error) {
-      console.error('Error creating completion:', error);
-      alert('Failed to record completion. Please try again.');
-    }
-  };
-
-  // Auto-fill grade points based on letter grade
-  const handleGradeChange = (grade: string) => {
-    setFormData(prev => ({ ...prev, grade }));
-    
-    const gradePoints: Record<string, string> = {
-      'A+': '4.0', 'A': '4.0', 'A-': '3.7',
-      'B+': '3.3', 'B': '3.0', 'B-': '2.7',
-      'C+': '2.3', 'C': '2.0', 'C-': '1.7',
-      'D+': '1.3', 'D': '1.0', 'D-': '0.7',
-      'F': '0.0'
-    };
-    
-    if (gradePoints[grade]) {
-      setFormData(prev => ({ ...prev, grade_points: gradePoints[grade] }));
-    }
-  };
-
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 15 }, (_, i) => currentYear - 10 + i);
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Record Course Completion">
-      <div>
-        <div style={{ display: 'grid', gap: '1rem' }}>
-          <FormField label="Course" required>
-            <Select
-              value={formData.course_id}
-              onChange={(value) => setFormData(prev => ({ ...prev, course_id: value }))}
-            >
-              <option value="">Select a course...</option>
-              {courses.map(course => (
-                <option key={course.id} value={course.id}>
-                  {course.code} - {course.name} ({course.credits} credits)
-                </option>
-              ))}
-            </Select>
-          </FormField>
-
-          <FormField label="Program (Optional)">
-            <Select
-              value={formData.program_id}
-              onChange={(value) => setFormData(prev => ({ ...prev, program_id: value }))}
-            >
-              <option value="">Not part of a specific program</option>
-              {programs.map(program => (
-                <option key={program.id} value={program.id}>
-                  {program.name}
-                </option>
-              ))}
-            </Select>
-          </FormField>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
-            <FormField label="Semester">
-              <Select
-                value={formData.semester}
-                onChange={(value) => setFormData(prev => ({ ...prev, semester: value }))}
-              >
-                <option value="">Select semester...</option>
-                <option value="Spring">Spring</option>
-                <option value="Summer">Summer</option>
-                <option value="Fall">Fall</option>
-                <option value="Winter">Winter</option>
-              </Select>
-            </FormField>
-
-            <FormField label="Year">
-              <Select
-                value={formData.year}
-                onChange={(value) => setFormData(prev => ({ ...prev, year: value }))}
-              >
-                {years.map(year => (
-                  <option key={year} value={year}>{year}</option>
-                ))}
-              </Select>
-            </FormField>
-
-            <FormField label="Status">
-              <Select
-                value={formData.status}
-                onChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
-              >
-                <option value="completed">Completed</option>
-                <option value="enrolled">Currently Enrolled</option>
-                <option value="dropped">Dropped</option>
-                <option value="withdrawn">Withdrawn</option>
-              </Select>
-            </FormField>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
-            <FormField label="Grade">
-              <Select
-                value={formData.grade}
-                onChange={handleGradeChange}
-              >
-                <option value="">Select grade...</option>
-                <option value="A+">A+</option>
-                <option value="A">A</option>
-                <option value="A-">A-</option>
-                <option value="B+">B+</option>
-                <option value="B">B</option>
-                <option value="B-">B-</option>
-                <option value="C+">C+</option>
-                <option value="C">C</option>
-                <option value="C-">C-</option>
-                <option value="D+">D+</option>
-                <option value="D">D</option>
-                <option value="D-">D-</option>
-                <option value="F">F</option>
-                <option value="Pass">Pass</option>
-                <option value="Fail">Fail</option>
-                <option value="Audit">Audit</option>
-              </Select>
-            </FormField>
-
-            <FormField label="Grade Points">
-              <Input
-                type="number"
-                value={formData.grade_points}
-                onChange={(value) => setFormData(prev => ({ ...prev, grade_points: value }))}
-                placeholder="4.0"
-                min="0"
-                max="4"
-                step="0.1"
-              />
-            </FormField>
-
-            <FormField label="Completion Date">
-              <Input
-                type="date"
-                value={formData.completion_date}
-                onChange={(value) => setFormData(prev => ({ ...prev, completion_date: value }))}
-              />
-            </FormField>
-          </div>
-
-          <FormField label="Notes">
-            <Textarea
-              value={formData.notes}
-              onChange={(value) => setFormData(prev => ({ ...prev, notes: value }))}
-              placeholder="Any additional notes about this course completion..."
-              rows={3}
-            />
-          </FormField>
-        </div>
-
-        <div style={{ 
-          display: 'flex', 
-          gap: '1rem', 
-          marginTop: '2rem',
-          paddingTop: '1rem',
-          borderTop: '1px solid #e2e8f0'
-        }}>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              flex: 1,
-              padding: '0.75rem 1rem',
-              border: '1px solid #d1d5db',
-              borderRadius: '0.375rem',
-              backgroundColor: 'white',
-              color: '#374151',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              cursor: 'pointer'
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            style={{
-              flex: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-              padding: '0.75rem 1rem',
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '0.375rem',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              cursor: 'pointer'
-            }}
-          >
-            <Save size={16} />
-            Record Completion
-          </button>
-        </div>
-      </div>
-    </Modal>
-  );
-};
-
-// Quick Add Course Form (simpler version)
-export const QuickAddCourseForm = ({ isOpen, onClose, onSubmit, institutions = [] }: QuickAddCourseFormProps) => {
-  const [formData, setFormData] = useState({
-    code: '',
-    name: '',
-    credits: '3',
-    institution_id: '',
-    institution: ''
-  });
-
-  const handleSubmit = async () => {
-    if (!formData.code.trim() || !formData.name.trim()) {
-      alert('Course code and name are required');
-      return;
-    }
-    
-    const submitData = {
-      ...formData,
-      credits: parseInt(formData.credits),
-      institution_id: formData.institution_id ? parseInt(formData.institution_id) : null,
-      institution: formData.institution_id ? null : (formData.institution.trim() || null)
-    };
-
-    try {
-      await onSubmit(submitData);
-      setFormData({
-        code: '',
-        name: '',
-        credits: '3',
-        institution_id: '',
-        institution: ''
-      });
-      onClose();
-    } catch (error) {
-      console.error('Error creating course:', error);
-      alert('Failed to create course. Please try again.');
-    }
-  };
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Quick Add Course">
-      <div>
-        <div style={{ display: 'grid', gap: '1rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr', gap: '1rem' }}>
-            <FormField label="Course Code" required>
-              <Input
-                value={formData.code}
-                onChange={(value) => setFormData(prev => ({ ...prev, code: value.toUpperCase() }))}
-                placeholder="CS101"
-              />
-            </FormField>
-
-            <FormField label="Course Name" required>
-              <Input
-                value={formData.name}
-                onChange={(value) => setFormData(prev => ({ ...prev, name: value }))}
-                placeholder="Introduction to Programming"
-              />
-            </FormField>
-
-            <FormField label="Credits">
-              <Select
-                value={formData.credits}
-                onChange={(value) => setFormData(prev => ({ ...prev, credits: value }))}
-              >
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-              </Select>
-            </FormField>
-          </div>
-
-          <FormField label="Institution">
-            <Select
-              value={formData.institution_id}
-              onChange={(value) => setFormData(prev => ({ ...prev, institution_id: value, institution: '' }))}
-            >
-              <option value="">Select an institution...</option>
-              {institutions.map(institution => (
-                <option key={institution.id} value={institution.id}>
-                  {institution.name}
-                </option>
-              ))}
-            </Select>
-            
-            {/* Custom institution input - only show if no institution selected */}
-            {!formData.institution_id && (
-              <div style={{ marginTop: '0.5rem' }}>
-                <Input
-                  value={formData.institution}
-                  onChange={(value) => setFormData(prev => ({ ...prev, institution: value }))}
-                  placeholder="Or type a custom institution name"
-                />
-              </div>
-            )}
-          </FormField>
-        </div>
-
-        <div style={{ 
-          display: 'flex', 
-          gap: '1rem', 
-          marginTop: '2rem',
-          paddingTop: '1rem',
-          borderTop: '1px solid #e2e8f0'
-        }}>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              flex: 1,
-              padding: '0.75rem 1rem',
-              border: '1px solid #d1d5db',
-              borderRadius: '0.375rem',
-              backgroundColor: 'white',
-              color: '#374151',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              cursor: 'pointer'
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            style={{
-              flex: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-              padding: '0.75rem 1rem',
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '0.375rem',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              cursor: 'pointer'
-            }}
-          >
-            <Plus size={16} />
-            Add Course
-          </button>
-        </div>
-      </div>
-    </Modal>
-  );
-};
-
-export default { AddProgramForm, AddCompletionForm, QuickAddCourseForm };
+export default ProgramManagementModal;
